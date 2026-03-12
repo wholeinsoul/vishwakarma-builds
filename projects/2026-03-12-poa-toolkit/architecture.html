@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConcretePOA - Architecture Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+        }
+        
+        .diagram-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .diagram-section h2 {
+            color: #fbbf24;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+        }
+        
+        .diagram-section p {
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .mermaid {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 1rem;
+        }
+        
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .metadata-item {
+            background: rgba(251, 191, 36, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        
+        .metadata-item strong {
+            color: #fbbf24;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            color: #64748b;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .diagram-section {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏗️ ConcretePOA Architecture</h1>
+            <p class="subtitle">Power of Attorney Bank Requirements Tracker — System Design Documentation</p>
+            <div class="metadata">
+                <div class="metadata-item">
+                    <strong>Build Date:</strong>
+                    2026-03-12
+                </div>
+                <div class="metadata-item">
+                    <strong>Stack:</strong>
+                    Next.js 14 + Supabase + PostgreSQL
+                </div>
+                <div class="metadata-item">
+                    <strong>Deployment:</strong>
+                    Vercel (planned)
+                </div>
+            </div>
+        </header>
+
+        <!-- System Architecture -->
+        <section class="diagram-section">
+            <h2>1. System Architecture</h2>
+            <p>High-level overview of the ConcretePOA application architecture, showing the relationship between frontend, backend, authentication, and database layers.</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Client Layer"
+        Browser[User Browser]
+        Landing[Landing Page]
+        BanksList[Banks List]
+        BankDetail[Bank Detail]
+        Dashboard[Dashboard - Auth Required]
+        Auth[Auth Page]
+    end
+    
+    subgraph "Next.js Application - App Router"
+        SSR[Server Components<br/>SSR/SSG]
+        Client[Client Components<br/>Interactive UI]
+        Middleware[Middleware<br/>Auth Refresh]
+        API[API Routes<br/>Future]
+    end
+    
+    subgraph "Supabase BaaS"
+        SupaAuth[Supabase Auth<br/>Email/Password]
+        SupaDB[PostgreSQL Database<br/>Row Level Security]
+        SupaStorage[Storage<br/>Future - POA Docs]
+        SupaRealtime[Realtime<br/>Future - Live Updates]
+    end
+    
+    Browser --> Landing
+    Browser --> BanksList
+    Browser --> BankDetail
+    Browser --> Dashboard
+    Browser --> Auth
+    
+    Landing --> SSR
+    BanksList --> SSR
+    BankDetail --> SSR
+    Dashboard --> SSR
+    Auth --> Client
+    
+    SSR --> Middleware
+    Client --> Middleware
+    
+    Middleware --> SupaAuth
+    SSR --> SupaDB
+    Client --> SupaDB
+    Client --> SupaAuth
+    
+    SupaAuth --> SupaDB
+    
+    style Browser fill:#fbbf24,stroke:#92400e,color:#000
+    style SupaDB fill:#3b82f6,stroke:#1e40af,color:#fff
+    style SupaAuth fill:#10b981,stroke:#065f46,color:#fff
+    style SSR fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    style Client fill:#ec4899,stroke:#9f1239,color:#fff
+            </div>
+        </section>
+
+        <!-- Data Flow -->
+        <section class="diagram-section">
+            <h2>2. Data Flow Diagram</h2>
+            <p>Request flow from user interaction through Next.js to Supabase database, including authentication and authorization via RLS policies.</p>
+            <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant Browser
+    participant NextJS as Next.js Server
+    participant Middleware
+    participant Supabase as Supabase Auth
+    participant DB as PostgreSQL + RLS
+    
+    User->>Browser: Navigate to /banks/chase
+    Browser->>NextJS: GET /banks/chase
+    NextJS->>Middleware: Check session
+    Middleware->>Supabase: Refresh auth token
+    Supabase-->>Middleware: Valid/Invalid session
+    Middleware-->>NextJS: Continue with auth context
+    
+    NextJS->>DB: SELECT * FROM banks WHERE slug='chase'
+    DB-->>NextJS: Bank record (public access)
+    
+    NextJS->>DB: SELECT * FROM bank_requirements WHERE bank_id=X
+    DB-->>NextJS: Requirements list (public access)
+    
+    NextJS->>DB: SELECT * FROM rejection_reports + votes (JOIN)
+    DB-->>NextJS: Reports with vote counts (public read)
+    
+    NextJS-->>Browser: SSR HTML with data
+    Browser-->>User: Rendered page
+    
+    User->>Browser: Click vote button
+    Browser->>Supabase: INSERT/UPDATE rejection_votes
+    Supabase->>DB: Check RLS policy (user owns vote)
+    
+    alt User authenticated
+        DB-->>Supabase: Insert allowed
+        Supabase-->>Browser: Success
+        Browser->>NextJS: Reload reports
+        NextJS->>DB: Fetch updated vote counts
+        DB-->>NextJS: Updated data
+        NextJS-->>Browser: Re-render
+    else User not authenticated
+        DB-->>Supabase: RLS policy blocks
+        Supabase-->>Browser: Error
+        Browser-->>User: Show error message
+    end
+            </div>
+        </section>
+
+        <!-- Component Hierarchy -->
+        <section class="diagram-section">
+            <h2>3. Component Hierarchy</h2>
+            <p>React component tree showing the relationship between pages, layouts, and reusable UI components.</p>
+            <div class="mermaid">
+graph TD
+    Root[app/layout.tsx<br/>Root Layout]
+    
+    Root --> Landing[app/page.tsx<br/>Landing Page]
+    Root --> Banks[app/banks/page.tsx<br/>Banks List]
+    Root --> BankDetail[app/banks/slug/page.tsx<br/>Bank Detail]
+    Root --> DashboardLayout[app/dashboard/layout.tsx<br/>Dashboard Layout - Protected]
+    Root --> AuthPage[app/auth/page.tsx<br/>Auth Page - Planned]
+    
+    DashboardLayout --> DashboardHome[app/dashboard/page.tsx<br/>Submissions List - Planned]
+    DashboardLayout --> NewSubmission[app/dashboard/new/page.tsx<br/>Create Submission - Planned]
+    
+    Root --> Navbar[components/navbar.tsx<br/>Client Component - Auth State]
+    
+    BankDetail --> RejectionReports[components/rejection-reports.tsx<br/>Client Component - Voting]
+    
+    Landing --> Button[components/ui/button.tsx]
+    Landing --> Card[components/ui/card.tsx]
+    
+    Banks --> Badge[components/ui/badge.tsx]
+    Banks --> Card
+    
+    BankDetail --> Separator[components/ui/separator.tsx]
+    BankDetail --> Badge
+    BankDetail --> Card
+    
+    RejectionReports --> Dialog[components/ui/dialog.tsx]
+    RejectionReports --> Textarea[components/ui/textarea.tsx]
+    RejectionReports --> Select[components/ui/select.tsx]
+    RejectionReports --> Input[components/ui/input.tsx]
+    
+    Navbar --> DropdownMenu[components/ui/dropdown-menu.tsx]
+    Navbar --> Button
+    
+    style Root fill:#fbbf24,stroke:#92400e,color:#000
+    style Navbar fill:#ec4899,stroke:#9f1239,color:#fff
+    style RejectionReports fill:#ec4899,stroke:#9f1239,color:#fff
+    style DashboardLayout fill:#ef4444,stroke:#991b1b,color:#fff
+    style AuthPage fill:#ef4444,stroke:#991b1b,color:#fff
+    style DashboardHome fill:#ef4444,stroke:#991b1b,color:#fff
+    style NewSubmission fill:#ef4444,stroke:#991b1b,color:#fff
+            </div>
+        </section>
+
+        <!-- Database ERD -->
+        <section class="diagram-section">
+            <h2>4. Database Entity Relationship Diagram</h2>
+            <p>PostgreSQL schema showing all tables, relationships, and key constraints. All tables have Row Level Security (RLS) policies enforcing data access controls.</p>
+            <div class="mermaid">
+erDiagram
+    BANKS ||--o{ BANK_REQUIREMENTS : has
+    BANKS ||--o{ SUBMISSIONS : receives
+    BANKS ||--o{ REJECTION_REPORTS : has
+    
+    PROFILES ||--o{ SUBMISSIONS : creates
+    PROFILES ||--o{ REJECTION_REPORTS : submits
+    PROFILES ||--o{ REJECTION_VOTES : casts
+    PROFILES ||--o{ RENEWAL_ALERTS : receives
+    
+    SUBMISSIONS ||--o{ SUBMISSION_CHECKLIST : has
+    SUBMISSIONS ||--o{ RENEWAL_ALERTS : triggers
+    
+    BANK_REQUIREMENTS ||--o{ SUBMISSION_CHECKLIST : tracked_in
+    
+    REJECTION_REPORTS ||--o{ REJECTION_VOTES : receives
+    
+    BANKS {
+        uuid id PK
+        text name
+        text slug UK
+        text website
+        text poa_phone
+        integer processing_time_days
+        boolean accepts_springing_poa
+        boolean accepts_durable_poa
+        boolean requires_notarization
+        boolean requires_medallion
+        boolean allows_remote_submission
+        text notes
+    }
+    
+    BANK_REQUIREMENTS {
+        uuid id PK
+        uuid bank_id FK
+        text category
+        text title
+        text description
+        boolean is_required
+        integer sort_order
+    }
+    
+    PROFILES {
+        uuid id PK
+        text full_name
+        text email
+        text role
+    }
+    
+    SUBMISSIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid bank_id FK
+        text principal_name
+        text agent_name
+        text poa_type
+        text status
+        timestamptz submitted_at
+        timestamptz expires_at
+    }
+    
+    SUBMISSION_CHECKLIST {
+        uuid id PK
+        uuid submission_id FK
+        uuid requirement_id FK
+        boolean is_completed
+        timestamptz completed_at
+    }
+    
+    REJECTION_REPORTS {
+        uuid id PK
+        uuid user_id FK
+        uuid bank_id FK
+        text rejection_reason
+        text details
+        text poa_type
+        timestamptz reported_at
+    }
+    
+    REJECTION_VOTES {
+        uuid id PK
+        uuid report_id FK
+        uuid user_id FK
+        text vote_type
+    }
+    
+    RENEWAL_ALERTS {
+        uuid id PK
+        uuid submission_id FK
+        uuid user_id FK
+        timestamptz alert_date
+        text message
+        boolean is_dismissed
+    }
+            </div>
+        </section>
+
+        <!-- RLS Policies -->
+        <section class="diagram-section">
+            <h2>5. Row Level Security (RLS) Policies</h2>
+            <p>Security model showing how Supabase RLS policies enforce data access control at the database level.</p>
+            <div class="mermaid">
+graph LR
+    subgraph "Public Data - Anyone Can Read"
+        Banks[banks]
+        Requirements[bank_requirements]
+        Reports[rejection_reports]
+        Votes[rejection_votes]
+    end
+    
+    subgraph "User-Scoped Data - Owner Only"
+        Profiles[profiles<br/>auth.uid = id]
+        Submissions[submissions<br/>auth.uid = user_id]
+        Checklist[submission_checklist<br/>via submissions FK]
+        Alerts[renewal_alerts<br/>auth.uid = user_id]
+    end
+    
+    subgraph "Write Permissions"
+        AuthWrite[Authenticated users can:<br/>- Create rejection_reports<br/>- Vote on reports<br/>- Create submissions]
+        PublicRead[Public can read:<br/>- Banks<br/>- Requirements<br/>- Reports<br/>- Votes]
+    end
+    
+    Banks -.->|public read| PublicRead
+    Requirements -.->|public read| PublicRead
+    Reports -.->|public read| PublicRead
+    Votes -.->|public read| PublicRead
+    
+    Reports -.->|auth required| AuthWrite
+    Votes -.->|auth required| AuthWrite
+    Submissions -.->|auth required| AuthWrite
+    
+    style Banks fill:#10b981,stroke:#065f46,color:#fff
+    style Requirements fill:#10b981,stroke:#065f46,color:#fff
+    style Reports fill:#10b981,stroke:#065f46,color:#fff
+    style Votes fill:#10b981,stroke:#065f46,color:#fff
+    
+    style Profiles fill:#ef4444,stroke:#991b1b,color:#fff
+    style Submissions fill:#ef4444,stroke:#991b1b,color:#fff
+    style Checklist fill:#ef4444,stroke:#991b1b,color:#fff
+    style Alerts fill:#ef4444,stroke:#991b1b,color:#fff
+            </div>
+        </section>
+
+        <!-- Deployment Architecture -->
+        <section class="diagram-section">
+            <h2>6. Deployment Architecture (Planned)</h2>
+            <p>Production deployment setup with Vercel for Next.js hosting and Supabase for backend services.</p>
+            <div class="mermaid">
+graph TB
+    subgraph "Edge Network - Vercel"
+        CDN[Vercel CDN<br/>Static Assets]
+        Edge[Edge Functions<br/>Middleware]
+        SSRNodes[Serverless Functions<br/>Next.js SSR]
+    end
+    
+    subgraph "Supabase Cloud"
+        SupaAuth[Auth Service]
+        SupaDB[PostgreSQL<br/>Connection Pooler]
+        SupaAPI[Auto-generated REST API]
+    end
+    
+    subgraph "Monitoring - Planned"
+        Vercel Analytics
+        Sentry[Sentry<br/>Error Tracking]
+        PostHog[PostHog<br/>Analytics]
+    end
+    
+    Users[End Users] -->|HTTPS| CDN
+    Users -->|HTTPS| Edge
+    
+    CDN --> SSRNodes
+    Edge --> SSRNodes
+    
+    SSRNodes -->|Server Components| SupaDB
+    Users -->|Client Components| SupaAuth
+    Users -->|Client Components| SupaAPI
+    
+    SupaAuth --> SupaDB
+    SupaAPI --> SupaDB
+    
+    SSRNodes -.->|Errors| Sentry
+    Users -.->|Events| PostHog
+    SSRNodes -.->|Metrics| Vercel Analytics
+    
+    style Users fill:#fbbf24,stroke:#92400e,color:#000
+    style CDN fill:#3b82f6,stroke:#1e40af,color:#fff
+    style Edge fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    style SSRNodes fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    style SupaDB fill:#10b981,stroke:#065f46,color:#fff
+            </div>
+        </section>
+
+        <footer>
+            <p>Generated by Vishwakarma 🏗️ | Architecture documentation for ConcretePOA</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">Open this file in any modern browser to view interactive diagrams</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#fbbf24',
+                primaryTextColor: '#1e293b',
+                primaryBorderColor: '#92400e',
+                lineColor: '#64748b',
+                secondaryColor: '#3b82f6',
+                tertiaryColor: '#10b981',
+                fontSize: '16px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                diagramMarginX: 50,
+                diagramMarginY: 10,
+                actorMargin: 50,
+                width: 150,
+                height: 65,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35,
+                mirrorActors: true,
+                useMaxWidth: true
+            },
+            er: {
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>

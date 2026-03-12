@@ -61,35 +61,41 @@ export function RejectionReports({ bankId, bankName }: Props) {
     } = await supabase.auth.getUser();
     setUserId(user?.id ?? null);
 
-    const { data: reps } = await supabase
+    // FIXED: Single query with join instead of N+1
+    const { data: repsData } = await supabase
       .from("rejection_reports")
-      .select("*")
+      .select(`
+        *,
+        rejection_votes (
+          vote_type,
+          user_id
+        )
+      `)
       .eq("bank_id", bankId)
       .order("created_at", { ascending: false });
 
-    if (!reps) return;
+    if (!repsData) return;
 
-    // Load votes for each report
-    const reportsWithVotes: ReportWithVotes[] = await Promise.all(
-      reps.map(async (r) => {
-        const { data: votes } = await supabase
-          .from("rejection_votes")
-          .select("*")
-          .eq("report_id", r.id);
+    // Calculate vote counts from joined data (no additional queries)
+    const reportsWithVotes: ReportWithVotes[] = repsData.map((r: unknown) => {
+      const report = r as { rejection_votes?: Array<{ vote_type: string; user_id: string }> } & Omit<ReportWithVotes, 'upvotes' | 'downvotes' | 'userVote'>;
+      const votes = report.rejection_votes || [];
+      const upvotes = votes.filter((v) => v.vote_type === "up").length;
+      const downvotes = votes.filter((v) => v.vote_type === "down").length;
+      const userVote = user
+        ? (votes.find((v) => v.user_id === user.id)?.vote_type as
+            | "up"
+            | "down"
+            | undefined) ?? null
+        : null;
 
-        const upvotes = votes?.filter((v) => v.vote_type === "up").length ?? 0;
-        const downvotes =
-          votes?.filter((v) => v.vote_type === "down").length ?? 0;
-        const userVote = user
-          ? (votes?.find((v) => v.user_id === user.id)?.vote_type as
-              | "up"
-              | "down"
-              | undefined) ?? null
-          : null;
-
-        return { ...r, upvotes, downvotes, userVote };
-      })
-    );
+      return {
+        ...report,
+        upvotes,
+        downvotes,
+        userVote,
+      };
+    });
 
     setReports(reportsWithVotes);
   }, [supabase, bankId]);
@@ -104,48 +110,73 @@ export function RejectionReports({ bankId, bankName }: Props) {
     const report = reports.find((r) => r.id === reportId);
     if (!report) return;
 
-    if (report.userVote === voteType) {
-      // Remove vote
-      await supabase
-        .from("rejection_votes")
-        .delete()
-        .eq("report_id", reportId)
-        .eq("user_id", userId);
-    } else if (report.userVote) {
-      // Change vote
-      await supabase
-        .from("rejection_votes")
-        .update({ vote_type: voteType })
-        .eq("report_id", reportId)
-        .eq("user_id", userId);
-    } else {
-      // New vote
-      await supabase.from("rejection_votes").insert({
-        report_id: reportId,
-        user_id: userId,
-        vote_type: voteType,
-      });
-    }
+    try {
+      let result;
+      if (report.userVote === voteType) {
+        // Remove vote
+        result = await supabase
+          .from("rejection_votes")
+          .delete()
+          .eq("report_id", reportId)
+          .eq("user_id", userId);
+      } else if (report.userVote) {
+        // Change vote
+        result = await supabase
+          .from("rejection_votes")
+          .update({ vote_type: voteType })
+          .eq("report_id", reportId)
+          .eq("user_id", userId);
+      } else {
+        // New vote
+        result = await supabase.from("rejection_votes").insert({
+          report_id: reportId,
+          user_id: userId,
+          vote_type: voteType,
+        });
+      }
 
-    loadReports();
+      if (result.error) {
+        console.error("Vote error:", result.error);
+        alert("Failed to record vote. Please try again.");
+        return;
+      }
+
+      loadReports();
+    } catch (error) {
+      console.error("Vote error:", error);
+      alert("Failed to record vote. Please try again.");
+    }
   };
 
   const handleSubmitReport = async () => {
     if (!userId || !form.rejection_reason.trim()) return;
     setSubmitting(true);
 
-    await supabase.from("rejection_reports").insert({
-      user_id: userId,
-      bank_id: bankId,
-      rejection_reason: form.rejection_reason,
-      details: form.details || null,
-      poa_type: form.poa_type,
-    });
+    try {
+      const { error } = await supabase.from("rejection_reports").insert({
+        user_id: userId,
+        bank_id: bankId,
+        rejection_reason: form.rejection_reason,
+        details: form.details || null,
+        poa_type: form.poa_type,
+      });
 
-    setForm({ rejection_reason: "", details: "", poa_type: "durable" });
-    setDialogOpen(false);
-    setSubmitting(false);
-    loadReports();
+      if (error) {
+        console.error("Submit report error:", error);
+        alert("Failed to submit report. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+
+      setForm({ rejection_reason: "", details: "", poa_type: "durable" });
+      setDialogOpen(false);
+      setSubmitting(false);
+      loadReports();
+    } catch (error) {
+      console.error("Submit report error:", error);
+      alert("Failed to submit report. Please try again.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -163,7 +194,7 @@ export function RejectionReports({ bankId, bankName }: Props) {
 
         {userId ? (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger>
               <Button className="bg-navy-600 hover:bg-navy-700 text-white">
                 <Plus className="h-4 w-4 mr-1" />
                 Report Rejection
@@ -188,7 +219,7 @@ export function RejectionReports({ bankId, bankName }: Props) {
                   <Label>POA Type</Label>
                   <Select
                     value={form.poa_type}
-                    onValueChange={(v) => setForm({ ...form, poa_type: v })}
+                    onValueChange={(v) => setForm({ ...form, poa_type: v || "durable" })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -222,7 +253,7 @@ export function RejectionReports({ bankId, bankName }: Props) {
             </DialogContent>
           </Dialog>
         ) : (
-          <Button variant="outline" asChild>
+          <Button variant="outline">
             <a href="/auth">Sign in to Report</a>
           </Button>
         )}
