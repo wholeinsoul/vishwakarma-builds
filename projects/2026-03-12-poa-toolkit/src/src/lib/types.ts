@@ -96,3 +96,34 @@ export interface RenewalAlert {
   created_at: string;
   submission?: Submission;
 }
+
+export interface IntakeForm {
+  id: string;
+  user_id: string;
+  principal_name: string | null;
+  principal_state: string | null;
+  principal_dob: string | null;
+  agent_name: string | null;
+  agent_relationship: string | null;
+  agent_email: string | null;
+  agent_phone: string | null;
+  poa_type: "durable" | "springing" | "limited";
+  selected_bank_ids: string[];
+  has_existing_poa: boolean;
+  existing_poa_url: string | null;
+  status: "draft" | "completed" | "paid";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  user_id: string;
+  intake_form_id: string;
+  amount_cents: number;
+  currency: string;
+  status: "pending" | "completed" | "failed";
+  stripe_session_id: string | null;
+  stripe_payment_intent: string | null;
+  created_at: string;
+}

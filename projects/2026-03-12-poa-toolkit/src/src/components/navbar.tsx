@@ -75,6 +75,15 @@ export function Navbar() {
               </Link>
             ))}
 
+            <Link href="/intake">
+              <Button
+                size="sm"
+                className="bg-amber-500 hover:bg-amber-600 text-navy-900 font-bold"
+              >
+                Get Started
+              </Button>
+            </Link>
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger>
@@ -132,6 +141,18 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/intake"
+              onClick={() => setMobileOpen(false)}
+              className="block px-3 py-2"
+            >
+              <Button
+                size="sm"
+                className="bg-amber-500 hover:bg-amber-600 text-navy-900 font-bold w-full"
+              >
+                Get Started
+              </Button>
+            </Link>
             {user ? (
               <button
                 onClick={handleSignOut}

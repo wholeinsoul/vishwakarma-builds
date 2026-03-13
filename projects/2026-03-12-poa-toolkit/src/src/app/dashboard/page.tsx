@@ -12,6 +12,7 @@ import {
   User,
   FileText,
   ClipboardList,
+  Crown,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -108,54 +109,77 @@ export default async function DashboardPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {typedSubmissions.map((submission) => (
-            <Link key={submission.id} href={`/dashboard/${submission.id}`}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="bg-navy-50 p-2 rounded-lg">
-                      <Building2 className="h-5 w-5 text-navy-600" />
+          {typedSubmissions.map((submission) => {
+            const isConcierge = submission.notes?.includes("Concierge service");
+            return (
+              <Link key={submission.id} href={`/dashboard/${submission.id}`}>
+                <Card
+                  className={`hover:shadow-lg transition-shadow cursor-pointer h-full ${
+                    isConcierge ? "border-amber-300 border-2" : ""
+                  }`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div
+                        className={`p-2 rounded-lg ${
+                          isConcierge ? "bg-amber-50" : "bg-navy-50"
+                        }`}
+                      >
+                        {isConcierge ? (
+                          <Crown className="h-5 w-5 text-amber-600" />
+                        ) : (
+                          <Building2 className="h-5 w-5 text-navy-600" />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {isConcierge && (
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-300">
+                            Concierge
+                          </Badge>
+                        )}
+                        <Badge
+                          className={statusColors[submission.status] || ""}
+                          variant="outline"
+                        >
+                          {statusLabels[submission.status] ||
+                            submission.status}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge
-                      className={statusColors[submission.status] || ""}
-                      variant="outline"
-                    >
-                      {statusLabels[submission.status] || submission.status}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-lg text-navy-700">
-                    {submission.bank.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-navy-600">
-                      <User className="h-4 w-4 text-navy-400" />
-                      <span className="font-medium">Principal:</span>
-                      <span>{submission.principal_name}</span>
+                    <CardTitle className="text-lg text-navy-700">
+                      {submission.bank.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-navy-600">
+                        <User className="h-4 w-4 text-navy-400" />
+                        <span className="font-medium">Principal:</span>
+                        <span>{submission.principal_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-navy-600">
+                        <User className="h-4 w-4 text-navy-400" />
+                        <span className="font-medium">Agent:</span>
+                        <span>{submission.agent_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-navy-600">
+                        <FileText className="h-4 w-4 text-navy-400" />
+                        <span className="font-medium">Type:</span>
+                        <span>{poaTypeLabels[submission.poa_type]}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-navy-400 text-xs pt-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>
+                          Created{" "}
+                          {new Date(submission.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-navy-600">
-                      <User className="h-4 w-4 text-navy-400" />
-                      <span className="font-medium">Agent:</span>
-                      <span>{submission.agent_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-navy-600">
-                      <FileText className="h-4 w-4 text-navy-400" />
-                      <span className="font-medium">Type:</span>
-                      <span>{poaTypeLabels[submission.poa_type]}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-navy-400 text-xs pt-2">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>
-                        Created{" "}
-                        {new Date(submission.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

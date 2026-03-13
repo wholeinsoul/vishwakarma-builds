@@ -13,6 +13,8 @@ import {
   FileText,
   Calendar,
   CheckCircle2,
+  Crown,
+  Circle,
 } from "lucide-react";
 import { ChecklistItem } from "@/components/checklist-item";
 
@@ -157,6 +159,44 @@ export default async function SubmissionDetailPage({
   const totalCount = typedChecklist.length;
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
+  // Check if this is a concierge submission
+  const isConcierge = typedSubmission.notes?.includes("Concierge service");
+
+  // Concierge timeline steps
+  const conciergeSteps = [
+    { label: "Intake Received", status: "completed" },
+    { label: "Payment Confirmed", status: "completed" },
+    {
+      label: "Research in Progress",
+      status: typedSubmission.status === "preparing" ? "current" : "completed",
+    },
+    {
+      label: "Ready to Submit",
+      status:
+        typedSubmission.status === "submitted" ||
+        typedSubmission.status === "under_review" ||
+        typedSubmission.status === "approved"
+          ? "completed"
+          : typedSubmission.status === "preparing"
+          ? "pending"
+          : "pending",
+    },
+    {
+      label: "Bank Reviewing",
+      status:
+        typedSubmission.status === "under_review" ||
+        typedSubmission.status === "approved"
+          ? "current"
+          : typedSubmission.status === "submitted"
+          ? "current"
+          : "pending",
+    },
+    {
+      label: "Approved",
+      status: typedSubmission.status === "approved" ? "completed" : "pending",
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Link
@@ -225,6 +265,57 @@ export default async function SubmissionDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Concierge Timeline */}
+      {isConcierge && (
+        <Card className="mb-8 border-2 border-amber-300 bg-amber-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-navy-700">
+              <Crown className="h-5 w-5 text-amber-600" />
+              Concierge Service Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {conciergeSteps.map((step, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    {step.status === "completed" ? (
+                      <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    ) : step.status === "current" ? (
+                      <div className="h-6 w-6 rounded-full border-4 border-amber-500 bg-white" />
+                    ) : (
+                      <Circle className="h-6 w-6 text-navy-300" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p
+                      className={`font-medium ${
+                        step.status === "completed"
+                          ? "text-green-700"
+                          : step.status === "current"
+                          ? "text-amber-700"
+                          : "text-navy-400"
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+                  </div>
+                  {step.status === "current" && (
+                    <Badge className="bg-amber-500 text-white">In Progress</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 p-4 bg-amber-100 rounded-lg">
+              <p className="text-sm text-amber-900">
+                <strong>🎯 Your concierge team is working on this.</strong> We&apos;ll
+                notify you at each step and ensure first-try acceptance.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress Summary */}
       <Card className="mb-8">

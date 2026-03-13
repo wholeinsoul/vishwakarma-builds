@@ -82,30 +82,29 @@ export default function LandingPage() {
               </div>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
-              Navigate Bank POA Requirements with Confidence
+              Get Your POA Accepted at Every Bank. First Try. Guaranteed.
             </h1>
             <p className="text-xl text-navy-200 mb-8 text-balance">
-              ConcretePOA helps attorneys, agents, and families track Power of
-              Attorney requirements across major US banks. Stop guessing — start
-              submitting with confidence.
+              Our concierge service handles everything — $399, done in 48 hours.
+              Bank-specific requirements verified. 90%+ first-try acceptance.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/banks">
+              <Link href="/intake">
                 <Button
                   size="lg"
                   className="bg-amber-500 hover:bg-amber-600 text-navy-900 font-bold text-lg px-8"
                 >
-                  Browse Banks
+                  Start Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/banks">
                 <Button
                   size="lg"
                   variant="outline"
                   className="border-navy-300 text-white hover:bg-navy-500 text-lg px-8"
                 >
-                  Get Started Free
+                  Browse Banks
                 </Button>
               </Link>
             </div>
@@ -158,6 +157,105 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center text-navy-700 mb-4">
+            Choose Your Plan
+          </h2>
+          <p className="text-center text-navy-400 mb-12 max-w-2xl mx-auto">
+            Browse requirements for free, or get full concierge service with
+            guaranteed acceptance.
+          </p>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Tier */}
+            <Card className="border-navy-200">
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold text-navy-700 mb-2">Free</h3>
+                <p className="text-navy-400 mb-6">
+                  Self-service POA requirements
+                </p>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Browse bank requirements</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Track your own submissions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Community rejection reports</span>
+                  </li>
+                </ul>
+                <Link href="/banks">
+                  <Button
+                    variant="outline"
+                    className="w-full border-navy-300 text-navy-700 hover:bg-navy-50"
+                  >
+                    Browse Banks
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Concierge Tier */}
+            <Card className="border-amber-500 border-2 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-navy-900 px-4 py-1 rounded-full text-sm font-bold">
+                RECOMMENDED
+              </div>
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold text-navy-700 mb-2">
+                  POA Autopilot
+                </h3>
+                <p className="text-navy-400 mb-2">Full concierge service</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-bold text-navy-700">$399</span>
+                  <span className="text-navy-400"> one-time</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span>Everything in Free, plus:</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>Bank-specific research</strong> for your POA
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>Document prep guidance</strong> and checklist
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>48-hour turnaround</strong> guarantee
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>Unlimited revisions</strong> if rejected
+                    </span>
+                  </li>
+                </ul>
+                <Link href="/intake">
+                  <Button className="w-full bg-amber-500 hover:bg-amber-600 text-navy-900 font-bold">
+                    Start Now
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
