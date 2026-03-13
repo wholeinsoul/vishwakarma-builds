@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pumpline Architecture — 2026-03-13</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 2rem; }
+    h1 { color: #f97316; font-size: 2rem; margin-bottom: 0.5rem; }
+    h2 { color: #fb923c; font-size: 1.4rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+    .subtitle { color: #888; margin-bottom: 2rem; }
+    .diagram-container { background: #1a1b26; border: 1px solid #333; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    .note { background: #1e293b; border-left: 3px solid #f97316; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #333; font-size: 0.9rem; }
+    th { color: #f97316; }
+  </style>
+</head>
+<body>
+  <h1>🏗️ Pumpline — Architecture Overview</h1>
+  <p class="subtitle">Septic Provider Directory for Rural Homeowners | 2026-03-13</p>
+
+  <h2>System Architecture</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+graph TB
+    subgraph Users["👥 Users"]
+        HO["🏠 Homeowner<br/>(via Google Search)"]
+        PR["🔧 Provider<br/>(Direct Link)"]
+        AD["🔒 Admin"]
+    end
+
+    subgraph Vercel["☁️ Vercel Edge Network"]
+        SSG["📄 Static Pages<br/>(ISR/SSG)<br/>/, /county/*, /provider/*"]
+        API["⚡ API Routes<br/>/api/reviews<br/>/api/leads<br/>/api/search<br/>/api/claim"]
+        ADM["🔐 Admin Panel<br/>/admin/*<br/>(Auth Protected)"]
+    end
+
+    subgraph Services["🔌 External Services"]
+        SB["🐘 Supabase<br/>PostgreSQL + Auth"]
+        RS["📧 Resend<br/>Email Delivery"]
+        UP["🔴 Upstash Redis<br/>Rate Limiting"]
+    end
+
+    HO --> SSG
+    HO --> API
+    PR --> SSG
+    PR --> API
+    AD --> ADM
+    
+    SSG --> SB
+    API --> SB
+    API --> RS
+    API --> UP
+    ADM --> SB
+    </pre>
+  </div>
+
+  <h2>Database Entity Relationship Diagram</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+erDiagram
+    COUNTIES {
+        uuid id PK
+        text name
+        text state
+        text slug UK
+        text description
+        int population
+        bool is_active
+    }
+    
+    PROVIDERS {
+        uuid id PK
+        uuid county_id FK
+        text name
+        text slug UK
+        text phone
+        text email
+        text services
+        text pricing_range
+        text response_time
+        bool is_premium
+        bool is_claimed
+        bool is_verified
+        decimal avg_rating
+        int review_count
+        text status
+    }
+    
+    REVIEWS {
+        uuid id PK
+        uuid provider_id FK
+        text author_name
+        int rating
+        text body
+        text service_type
+        text status
+        text ip_hash
+    }
+    
+    LEADS {
+        uuid id PK
+        text email
+        text name
+        text source
+        text county_slug
+    }
+    
+    ADMIN_USERS {
+        uuid id PK
+        text email UK
+        text role
+    }
+
+    COUNTIES ||--o{ PROVIDERS : "has many"
+    PROVIDERS ||--o{ REVIEWS : "has many"
+    </pre>
+  </div>
+
+  <h2>Primary User Flow — Homeowner Search</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart LR
+    A["🔍 Google Search<br/>'septic pumping<br/>travis county tx'"] --> B["📄 County Page<br/>/county/travis-county-tx<br/>(Static, Edge-Cached)"]
+    B --> C["📋 Provider Cards<br/>Sorted by: Premium → Rating"]
+    C --> D["👤 Provider Profile<br/>/provider/johnson-septic<br/>Details + Reviews"]
+    D --> E{"Homeowner Action"}
+    E --> F["📞 Call Provider<br/>(Conversion!)"]
+    E --> G["⭐ Write Review"]
+    E --> H["📧 Get Checklist<br/>(Lead Capture)"]
+    
+    style A fill:#1e40af,color:#fff
+    style F fill:#16a34a,color:#fff
+    style G fill:#9333ea,color:#fff
+    style H fill:#d97706,color:#fff
+    </pre>
+  </div>
+
+  <h2>Review Submission Flow</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart TD
+    A["⭐ Submit Review Form"] --> B{"Client-Side<br/>Validation"}
+    B -->|Invalid| C["❌ Show Field Errors"]
+    B -->|Valid| D["POST /api/reviews"]
+    D --> E{"Rate Limit<br/>Check"}
+    E -->|Exceeded| F["429: Try Tomorrow"]
+    E -->|OK| G{"Server-Side<br/>Validation"}
+    G -->|Invalid| H["400: Validation Error"]
+    G -->|Valid| I{"Duplicate<br/>Check"}
+    I -->|Duplicate| J["409: Already Reviewed"]
+    I -->|New| K["💾 Save to DB<br/>status: pending"]
+    K --> L["✅ Thank You!<br/>Pending Moderation"]
+    K --> M["📢 Notify Admin"]
+    
+    style A fill:#9333ea,color:#fff
+    style L fill:#16a34a,color:#fff
+    style F fill:#dc2626,color:#fff
+    style H fill:#dc2626,color:#fff
+    </pre>
+  </div>
+
+  <h2>Admin Review Moderation</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart LR
+    A["🔒 Admin Login<br/>(Supabase Auth)"] --> B["📋 Review Queue<br/>Pending Reviews"]
+    B --> C{"Admin Decision"}
+    C -->|Approve| D["✅ status → approved<br/>Trigger updates<br/>provider avg_rating"]
+    C -->|Reject| E["❌ status → rejected"]
+    C -->|Flag| F["🚩 status → flagged<br/>For further investigation"]
+    
+    style D fill:#16a34a,color:#fff
+    style E fill:#dc2626,color:#fff
+    style F fill:#d97706,color:#fff
+    </pre>
+  </div>
+
+  <h2>Data Flow — Lead Capture</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart TD
+    A["📧 Email Capture Form<br/>(Checklist page / County page)"] --> B{"Validate Email"}
+    B -->|Invalid| C["❌ Show Error"]
+    B -->|Valid| D["POST /api/leads"]
+    D --> E{"Rate Limit"}
+    E -->|Exceeded| F["429 Silent"]
+    E -->|OK| G{"Duplicate?"}
+    G -->|Yes| H["200 OK<br/>(Don't reveal duplicate)"]
+    G -->|No| I["💾 Save Lead"]
+    I --> J{"Send via Resend"}
+    J -->|Success| K["📧 Checklist PDF Sent"]
+    J -->|Failure| L["⚠️ Log Error<br/>Lead saved, retry later"]
+    
+    style K fill:#16a34a,color:#fff
+    style L fill:#d97706,color:#fff
+    </pre>
+  </div>
+
+  <h2>SEO Architecture</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+graph TD
+    subgraph Pages["📄 Page Hierarchy"]
+        HP["🏠 Homepage<br/>pumpline.com"]
+        HP --> ST["📍 State Pages<br/>/county?state=TX"]
+        ST --> CP["📋 County Pages<br/>/county/travis-county-tx<br/>ISR 30min"]
+        CP --> PP["👤 Provider Pages<br/>/provider/johnson-septic<br/>ISR 30min"]
+        HP --> BL["📝 Blog<br/>/blog/septic-guide"]
+        HP --> CK["📧 Checklist<br/>/checklist"]
+    end
+    
+    subgraph SEO["🔍 SEO Elements"]
+        JL["JSON-LD<br/>LocalBusiness<br/>AggregateRating"]
+        SM["sitemap.xml<br/>(Dynamic)"]
+        BC["Breadcrumbs<br/>Home > State > County"]
+        MT["Meta Tags<br/>title + description"]
+    end
+    
+    CP --> JL
+    PP --> JL
+    CP --> BC
+    PP --> BC
+    HP --> SM
+    
+    style HP fill:#1e40af,color:#fff
+    style CP fill:#7c3aed,color:#fff
+    style PP fill:#9333ea,color:#fff
+    </pre>
+  </div>
+
+  <h2>Tech Stack Summary</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Why</th></tr>
+    <tr><td>Framework</td><td>Next.js 14 (App Router)</td><td>SSG/ISR for SEO, React for interactivity</td></tr>
+    <tr><td>Database</td><td>Supabase (PostgreSQL)</td><td>Free tier, RLS, built-in auth for admin</td></tr>
+    <tr><td>ORM</td><td>Prisma</td><td>Type-safe queries, clean migrations</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS</td><td>Fast to build, responsive</td></tr>
+    <tr><td>Hosting</td><td>Vercel</td><td>Free tier, edge caching, one-click deploy</td></tr>
+    <tr><td>Email</td><td>Resend</td><td>Free tier, simple API</td></tr>
+    <tr><td>Rate Limiting</td><td>Upstash Redis</td><td>Serverless-friendly, free tier</td></tr>
+    <tr><td>Validation</td><td>Zod</td><td>TypeScript-first schema validation</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Design Philosophy:</strong> Static-first architecture. All public pages are pre-rendered at build time (ISR). 
+    Only API routes (review submission, lead capture, search) hit the database at request time. 
+    This means near-zero latency for SEO-critical pages and minimal database load.
+  </div>
+
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: true, 
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#f97316',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#f97316',
+        lineColor: '#666',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#1a1b26',
+        fontSize: '14px'
+      }
+    });
+  </script>
+</body>
+</html>
