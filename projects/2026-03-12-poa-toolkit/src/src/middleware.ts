@@ -1,8 +1,48 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { type NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Protect dashboard routes
+  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+    const redirectUrl = new URL("/auth", request.url);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Redirect authenticated users away from auth page
+  if (request.nextUrl.pathname === "/auth" && user) {
+    const redirectUrl = new URL("/dashboard", request.url);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {
