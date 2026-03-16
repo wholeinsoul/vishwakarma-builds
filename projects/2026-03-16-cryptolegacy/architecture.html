@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoLegacy — Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 2rem; color: #f59e0b; }
+    h2 { margin-top: 2rem; margin-bottom: 1rem; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+    .subtitle { text-align: center; color: #94a3b8; margin-bottom: 2rem; }
+    .diagram { background: #1e293b; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    .mermaid svg { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>🔐 CryptoLegacy Architecture</h1>
+  <p class="subtitle">Crypto Inheritance Platform — Zero-Knowledge Encrypted Guide Builder + Dead Man's Switch</p>
+
+  <h2>System Architecture</h2>
+  <div class="diagram">
+    <div class="mermaid">
+graph TB
+    subgraph Browser ["🌐 Browser (Client)"]
+        LP[Landing Page SSR]
+        Auth[Auth Pages]
+        Wizard[Guide Builder Wizard<br/>5 Steps]
+        Dashboard[Dashboard]
+        Decrypt[Beneficiary Decrypt Page]
+        Crypto[Web Crypto API<br/>AES-256-GCM + PBKDF2]
+    end
+
+    subgraph Vercel ["☁️ Vercel (Next.js API Routes)"]
+        API_Plans[POST /api/plans]
+        API_CheckIn[POST /api/check-in]
+        API_Beneficiaries[/api/beneficiaries]
+        API_Decrypt[GET /api/decrypt]
+        API_Cron[GET /api/cron/switches]
+        API_Stripe[POST /api/webhook/stripe]
+    end
+
+    subgraph Supabase ["🗄️ Supabase"]
+        SB_Auth[Auth Service]
+        DB_Plans[(plans)]
+        DB_Beneficiaries[(beneficiaries)]
+        DB_CheckIns[(check_ins)]
+        DB_Subs[(subscriptions)]
+    end
+
+    subgraph External ["🔌 External Services"]
+        Stripe[Stripe Billing]
+        Resend[Resend Email]
+        Cron[Vercel Cron<br/>Daily 00:00 UTC]
+    end
+
+    Wizard -->|Encrypt locally| Crypto
+    Crypto -->|Encrypted blob only| API_Plans
+    Dashboard --> API_CheckIn
+    Decrypt -->|Token auth| API_Decrypt
+
+    API_Plans --> DB_Plans
+    API_Plans --> DB_Beneficiaries
+    API_CheckIn --> DB_CheckIns
+    API_CheckIn --> DB_Plans
+    API_Decrypt --> DB_Beneficiaries
+    API_Decrypt --> DB_Plans
+    API_Stripe --> DB_Subs
+
+    Cron -->|Daily trigger| API_Cron
+    API_Cron --> DB_Plans
+    API_Cron -->|Reminder/Trigger| Resend
+    Resend -->|Email| Decrypt
+
+    Auth --> SB_Auth
+    Stripe --> API_Stripe
+
+    style Crypto fill:#f59e0b,stroke:#d97706,color:#000
+    style Decrypt fill:#10b981,stroke:#059669,color:#000
+    </div>
+  </div>
+
+  <h2>Dead Man's Switch Flow</h2>
+  <div class="diagram">
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant CL as CryptoLegacy
+    participant DB as Supabase DB
+    participant E as Resend Email
+    participant B as Beneficiary
+
+    Note over U,B: Setup Phase
+    U->>CL: Create recovery plan (encrypted)
+    CL->>DB: Store encrypted blob + beneficiaries
+    CL->>U: Plan active, check-in every N days
+
+    Note over U,B: Normal Operation
+    loop Every N days
+        CL->>E: Send check-in reminder
+        E->>U: "Click to confirm you're OK"
+        U->>CL: Check in ✅
+        CL->>DB: Reset next_check_in timer
+    end
+
+    Note over U,B: Switch Trigger (User Inactive)
+    CL->>DB: Cron finds overdue plan
+    CL->>E: Day 1-7: Send reminder
+    E->>U: "Please check in"
+    Note over U: No response
+    CL->>E: Day 7-14: Send URGENT reminder
+    E->>U: "⚠️ Switch will trigger in 7 days"
+    Note over U: Still no response
+    CL->>DB: Day 14+: Status → TRIGGERED
+    CL->>E: Send trigger notification
+    E->>B: "You have been granted access"
+    B->>CL: Open decrypt page with token
+    CL->>B: Return encrypted blob
+    B->>B: Enter passphrase → Decrypt locally
+    B->>B: Follow recovery guide steps
+    </div>
+  </div>
+
+  <h2>Database ERD</h2>
+  <div class="diagram">
+    <div class="mermaid">
+erDiagram
+    USERS ||--o{ PLANS : creates
+    USERS ||--o{ SUBSCRIPTIONS : has
+    PLANS ||--o{ BENEFICIARIES : has
+    PLANS ||--o{ CHECK_INS : records
+
+    USERS {
+        uuid id PK
+        string email
+        jsonb user_metadata
+        timestamp created_at
+    }
+
+    PLANS {
+        uuid id PK
+        uuid user_id FK
+        string title
+        text encrypted_blob
+        text encryption_iv
+        text encryption_salt
+        int check_in_interval_days
+        timestamp next_check_in
+        string status
+        text_arr template_ids
+        timestamp created_at
+    }
+
+    BENEFICIARIES {
+        uuid id PK
+        uuid plan_id FK
+        uuid user_id FK
+        string name
+        string email
+        string phone
+        boolean notified
+        uuid notify_token
+    }
+
+    CHECK_INS {
+        uuid id PK
+        uuid plan_id FK
+        uuid user_id FK
+        timestamp checked_in_at
+    }
+
+    SUBSCRIPTIONS {
+        uuid id PK
+        uuid user_id FK
+        string stripe_customer_id
+        string stripe_subscription_id
+        string status
+        string plan_type
+        timestamp current_period_end
+    }
+    </div>
+  </div>
+
+  <h2>Encryption Flow</h2>
+  <div class="diagram">
+    <div class="mermaid">
+flowchart LR
+    subgraph Client ["Browser (Zero Knowledge)"]
+        A[User enters passphrase] --> B[PBKDF2<br/>600K iterations<br/>+ random salt]
+        B --> C[AES-256 Key]
+        D[Recovery guide JSON] --> E[AES-256-GCM Encrypt<br/>+ random IV]
+        C --> E
+        E --> F[Ciphertext + Auth Tag]
+    end
+
+    F -->|"Only encrypted data<br/>leaves the browser"| G[Server stores:<br/>ciphertext, iv, salt]
+
+    subgraph Decrypt ["Beneficiary Browser"]
+        H[Enter passphrase] --> I[PBKDF2 + stored salt]
+        I --> J[AES-256 Key]
+        G -->|Fetch encrypted blob| K[AES-256-GCM Decrypt]
+        J --> K
+        K --> L[Recovery Guide ✅]
+    end
+
+    style Client fill:#1e293b,stroke:#f59e0b,color:#e2e8f0
+    style Decrypt fill:#1e293b,stroke:#10b981,color:#e2e8f0
+    </div>
+  </div>
+
+  <h2>Component Hierarchy</h2>
+  <div class="diagram">
+    <div class="mermaid">
+graph TD
+    App[App Layout] --> Landing[Landing Page]
+    App --> AuthGroup[Auth Group]
+    App --> DashGroup[Dashboard Group]
+    App --> PublicGroup[Public Group]
+
+    AuthGroup --> Login[Login]
+    AuthGroup --> Signup[Signup]
+    AuthGroup --> Callback[Auth Callback]
+
+    DashGroup --> Dashboard[Dashboard]
+    DashGroup --> Create[Create Plan Wizard]
+    DashGroup --> Settings[Settings]
+    DashGroup --> CheckIn[Check-In Page]
+
+    Dashboard --> SwitchStatus[Switch Status Card]
+    Dashboard --> CheckInBtn[Check-In Button]
+    Dashboard --> BenList[Beneficiary List]
+    Dashboard --> NavHeader[Nav Header]
+
+    Create --> PlatformSel[Platform Selector]
+    Create --> DetailForm[Detail Form]
+    Create --> BenForm[Beneficiary Form]
+    Create --> PassSetup[Passphrase Setup]
+    Create --> IntervalSel[Interval Selector]
+
+    PublicGroup --> DecryptPage[Decrypt Page]
+    PublicGroup --> Pricing[Pricing Page]
+
+    DecryptPage --> PassInput[Passphrase Input]
+    DecryptPage --> RecoveryGuide[Recovery Guide Display]
+
+    Landing --> Hero[Hero Section]
+    Landing --> HowItWorks[How It Works]
+    Landing --> PricingCards[Pricing Cards]
+    Landing --> TrustSignals[Trust Signals]
+    Landing --> FAQ[FAQ]
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#f59e0b',
+        primaryTextColor: '#0f172a',
+        primaryBorderColor: '#d97706',
+        lineColor: '#64748b',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#334155',
+        background: '#1e293b',
+        mainBkg: '#1e293b',
+        nodeBorder: '#475569',
+      },
+    });
+  </script>
+</body>
+</html>
