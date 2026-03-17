@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>On Special — Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: #0d1117; color: #c9d1d9; }
+h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 0.5rem; }
+h2 { color: #79c0ff; margin-top: 2rem; }
+.mermaid { background: #161b22; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>🍺 On Special — Architecture</h1>
+<p>AI Specials-to-Content Tool for Bars & Restaurants | 2026-03-17</p>
+
+<h2>System Architecture</h2>
+<div class="mermaid">
+graph TB
+    subgraph Client["Browser (Next.js Client)"]
+        LP[Landing Page]
+        DASH[Dashboard - Generate]
+        HIST[History Page]
+        SETTINGS[Bar Profile Settings]
+        AUTH[Auth Pages]
+    end
+
+    subgraph Server["Next.js Server (Vercel)"]
+        API_GEN["/api/generate"]
+        API_PROF["/api/bar-profile"]
+        API_HIST["/api/history"]
+        API_STRIPE_CO["/api/stripe/checkout"]
+        API_STRIPE_WH["/api/stripe/webhook"]
+        MW[Middleware: Auth + Rate Limit]
+    end
+
+    subgraph External["External Services"]
+        OPENAI["OpenAI API (GPT-4o-mini)"]
+        SUPA["Supabase (Auth + Postgres + RLS)"]
+        STRIPE["Stripe (Checkout + Webhooks)"]
+    end
+
+    DASH -->|POST| API_GEN
+    SETTINGS -->|PUT| API_PROF
+    HIST -->|GET| API_HIST
+    DASH -->|Subscribe| API_STRIPE_CO
+
+    API_GEN --> MW --> SUPA
+    API_GEN -->|Generate content| OPENAI
+    API_GEN -->|Save generation| SUPA
+    API_STRIPE_WH -->|Update subscription| SUPA
+    API_STRIPE_CO -->|Create session| STRIPE
+    STRIPE -->|Webhook events| API_STRIPE_WH
+</div>
+
+<h2>Data Flow — Generate Content</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant U as Bar Owner
+    participant UI as Dashboard
+    participant API as /api/generate
+    participant DB as Supabase
+    participant AI as OpenAI
+
+    U->>UI: Types tonight's specials
+    UI->>API: POST {specials_text, categories}
+    API->>DB: Verify auth + subscription
+    DB-->>API: User valid, subscribed
+    API->>DB: Fetch bar_profile
+    DB-->>API: {bar_name, voice, hashtags}
+    API->>AI: Generate (3 platform prompts)
+    AI-->>API: {instagram, facebook, google}
+    API->>DB: INSERT into generations
+    API-->>UI: Return 3 content cards
+    UI-->>U: Preview + Copy buttons
+</div>
+
+<h2>Component Hierarchy</h2>
+<div class="mermaid">
+graph TD
+    ROOT["RootLayout"]
+    ROOT --> LP["LandingPage (/)"]
+    ROOT --> AUTH_L["AuthLayout (/auth)"]
+    ROOT --> DASH_L["DashLayout (/dashboard)"]
+
+    AUTH_L --> LOGIN["/auth/login"]
+    AUTH_L --> SIGNUP["/auth/signup"]
+
+    DASH_L --> GEN["/dashboard (Generate)"]
+    DASH_L --> HIST["/dashboard/history"]
+    DASH_L --> PROF["/dashboard/settings"]
+
+    GEN --> SPEC_INPUT["SpecialsInput"]
+    GEN --> CAT_SELECT["CategorySelector"]
+    GEN --> GEN_BTN["GenerateButton"]
+    GEN --> PREVIEW["ContentPreview"]
+
+    PREVIEW --> IG_CARD["InstagramCard"]
+    PREVIEW --> FB_CARD["FacebookCard"]
+    PREVIEW --> GOOG_CARD["GoogleCard"]
+
+    IG_CARD --> COPY["CopyButton"]
+    FB_CARD --> COPY
+    GOOG_CARD --> COPY
+</div>
+
+<h2>Database ERD</h2>
+<div class="mermaid">
+erDiagram
+    USERS ||--o| BAR_PROFILES : has
+    USERS ||--o{ GENERATIONS : creates
+    USERS ||--o| SUBSCRIPTIONS : has
+
+    USERS {
+        uuid id PK
+        string email
+        timestamp created_at
+    }
+
+    BAR_PROFILES {
+        uuid id PK
+        uuid user_id FK
+        string bar_name
+        string brand_voice
+        text default_hashtags
+        string cuisine_type
+        string neighborhood
+        timestamp updated_at
+    }
+
+    GENERATIONS {
+        uuid id PK
+        uuid user_id FK
+        text specials_text
+        jsonb categories
+        text instagram_content
+        text facebook_content
+        text google_content
+        integer tokens_used
+        timestamp created_at
+    }
+
+    SUBSCRIPTIONS {
+        uuid id PK
+        uuid user_id FK
+        string stripe_customer_id
+        string stripe_subscription_id
+        string status
+        timestamp current_period_end
+        timestamp created_at
+    }
+</div>
+
+<script>mermaid.initialize({theme:'dark',startOnLoad:true});</script>
+</body>
+</html>
