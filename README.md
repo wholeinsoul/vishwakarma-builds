@@ -70,4 +70,12 @@ projects/YYYY-MM-DD-<slug>/
 
 ---
 
-Built by [Vishwakarma](https://github.com/wholeinsoul) 🏗️
+## How It Works
+
+This is a **human-in-the-loop AI build system**. [PB](https://github.com/wholeinsoul) designed the pipeline, orchestration flow, and quality gates — and stays in the loop to guide every build. Vishwakarma is the AI builder agent that executes the pipeline under PB's direction.
+
+The pipeline itself — the 10-step process, the Ralph Loop quality passes, the CEO/Eng review frameworks, the file-based gates, the sub-agent architecture — that's all PB's design. Vishwakarma builds what PB architects.
+
+---
+
+Built by **PB** (human architect) + **Vishwakarma** (AI builder) 🏗️
