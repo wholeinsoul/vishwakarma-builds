@@ -16,7 +16,6 @@ Every build goes through a rigorous 10-step pipeline: scrape → CEO review → 
 | Mar 13 | [**PumpLine**](projects/2026-03-13-pumpline/) | Septic system fails, family can't use their bathroom. Finding a pumper in rural areas is a nightmare. | ✅ BUILD |
 | Mar 14 | [**Reroute**](projects/2026-03-14-reroute/) | Airlines owe compensation for delays but make it impossible to collect. | ⏭️ SKIP |
 | Mar 15 | [**Lineage AI**](projects/2026-03-15-lineage-ai/) | 7/10 at-risk family members never get genetic testing — outreach never reaches them. | ⏭️ SKIP |
-| Mar 15 | [**Uma**](projects/2026-03-15-uma/) | Elderly parents in India can't manage their own medications. One WhatsApp photo should be enough. | ✅ BUILD |
 | Mar 16 | [**CryptoLegacy**](projects/2026-03-16-cryptolegacy/) | $140B+ in crypto locked forever. Keys lost, holders died without sharing access. | ✅ BUILD |
 | Mar 17 | [**On Special**](projects/2026-03-17-on-special/) | Bar owners spend St. Patrick's Day pouring drinks instead of posting specials to social media. | ✅ BUILD |
 
