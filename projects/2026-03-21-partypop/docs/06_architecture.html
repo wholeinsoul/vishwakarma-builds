@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partypop Architecture — 2026-03-21</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 2rem; }
+    h1 { color: #ec4899; font-size: 2rem; margin-bottom: 0.5rem; }
+    h2 { color: #f472b6; font-size: 1.4rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+    .subtitle { color: #888; margin-bottom: 2rem; }
+    .diagram-container { background: #1a1b26; border: 1px solid #333; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    .note { background: #1e293b; border-left: 3px solid #ec4899; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #333; font-size: 0.9rem; }
+    th { color: #ec4899; }
+  </style>
+</head>
+<body>
+  <h1>🎉 Partypop — Architecture Overview</h1>
+  <p class="subtitle">AI Kids' Party Plan Generator + RSVP Tracker | 2026-03-21</p>
+
+  <h2>System Architecture</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+graph TB
+    subgraph Users["👥 Users"]
+        PA["👩 Parent<br/>(Planner)"]
+        GU["👶 Guest Family<br/>(RSVP)"]
+    end
+
+    subgraph Vercel["☁️ Vercel Edge Network"]
+        LP["📄 Landing Page<br/>(SSG)"]
+        WIZ["🧙 Plan Wizard<br/>(Client Component)"]
+        PV["📋 Plan View<br/>(Auth Required)"]
+        RSVP["💌 RSVP Page<br/>(Public)"]
+        DASH["📊 Dashboard<br/>(Auth Required)"]
+        API["⚡ API Routes"]
+    end
+
+    subgraph Services["🔌 External Services"]
+        SB["🐘 Supabase<br/>PostgreSQL + Auth + RLS"]
+        OAI["🤖 OpenAI<br/>GPT-4o-mini"]
+        STR["💳 Stripe<br/>$4.99/party"]
+        RS["📧 Resend<br/>RSVP Notifications"]
+        UP["🔴 Upstash Redis<br/>Rate Limiting"]
+    end
+
+    PA --> LP
+    PA --> WIZ
+    PA --> PV
+    PA --> DASH
+    GU --> RSVP
+
+    WIZ --> API
+    PV --> API
+    RSVP --> API
+    DASH --> API
+
+    API --> SB
+    API --> OAI
+    API --> STR
+    API --> RS
+    API --> UP
+    </pre>
+  </div>
+
+  <h2>Database Entity Relationship</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+erDiagram
+    PROFILES {
+        uuid id PK
+        text email
+        text full_name
+        timestamptz created_at
+    }
+
+    PARTIES {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text child_name
+        int child_age
+        text theme
+        int headcount
+        int budget
+        text venue_type
+        date party_date
+        jsonb plan_data
+        bool is_premium
+        text rsvp_slug UK
+        text status
+    }
+
+    RSVPS {
+        uuid id PK
+        uuid party_id FK
+        text guest_name
+        text guest_email
+        text attending
+        int num_children
+        text dietary_needs
+        timestamptz responded_at
+    }
+
+    THEME_TEMPLATES {
+        uuid id PK
+        text slug UK
+        text name
+        text emoji
+        text prompt_context
+        text color_primary
+        bool is_active
+    }
+
+    PROFILES ||--o{ PARTIES : "creates"
+    PARTIES ||--o{ RSVPS : "receives"
+    THEME_TEMPLATES ||--o{ PARTIES : "used by"
+    </pre>
+  </div>
+
+  <h2>Primary User Flow — Plan Generation</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart LR
+    A["🏠 Landing Page"] --> B["🔐 Login/Signup<br/>(Supabase Auth)"]
+    B --> C["🧙 Plan Wizard<br/>Theme → Age → Count<br/>→ Budget → Venue"]
+    C --> D{"Premium<br/>Check"}
+    D -->|"1st Free"| E["🤖 AI Generation<br/>(GPT-4o-mini)"]
+    D -->|"Need $4.99"| F["💳 Stripe Checkout"]
+    F --> E
+    E --> G["📋 Complete Plan<br/>Timeline + Activities<br/>+ Food + Shopping"]
+    G --> H{"Share?"}
+    H -->|"RSVP"| I["💌 RSVP Link<br/>/rsvp/abc123"]
+    H -->|"Print"| J["🖨️ Print View"]
+    H -->|"Share"| K["🔗 Share Link"]
+
+    style A fill:#1e40af,color:#fff
+    style E fill:#9333ea,color:#fff
+    style G fill:#16a34a,color:#fff
+    style I fill:#ec4899,color:#fff
+    </pre>
+  </div>
+
+  <h2>RSVP Guest Flow</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+flowchart TD
+    A["💌 Guest receives<br/>RSVP link"] --> B["📱 Opens /rsvp/slug"]
+    B --> C{"Party<br/>exists?"}
+    C -->|No| D["❌ 404 Page"]
+    C -->|Yes| E{"RSVP<br/>open?"}
+    E -->|Closed| F["⏰ Past Deadline"]
+    E -->|Open| G["📝 RSVP Form<br/>Name, Attending,<br/>Dietary, Notes"]
+    G --> H["POST /api/rsvp"]
+    H --> I{"Duplicate<br/>email?"}
+    I -->|Yes| J["🔄 Update Existing"]
+    I -->|No| K["✅ Insert New"]
+    J --> L["🎉 Confirmed Page"]
+    K --> L
+    K --> M["📧 Notify Parent<br/>(Resend)"]
+
+    style A fill:#ec4899,color:#fff
+    style L fill:#16a34a,color:#fff
+    </pre>
+  </div>
+
+  <h2>Payment Flow</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+sequenceDiagram
+    participant P as Parent
+    participant App as Partypop
+    participant S as Stripe
+    participant DB as Supabase
+
+    P->>App: Click "Unlock Premium"
+    App->>S: Create Checkout Session ($4.99)
+    S-->>App: Session URL
+    App-->>P: Redirect to Stripe
+    P->>S: Complete Payment
+    S->>App: Webhook (checkout.session.completed)
+    App->>App: Verify Stripe Signature
+    App->>DB: UPDATE party SET is_premium = true
+    S-->>P: Redirect to /plan/[id]?upgraded=true
+    P->>App: View Premium Plan
+    </pre>
+  </div>
+
+  <h2>Component Hierarchy</h2>
+  <div class="diagram-container">
+    <pre class="mermaid">
+graph TD
+    ROOT["RootLayout<br/>(Nav + Footer)"]
+
+    ROOT --> LAND["LandingPage<br/>(Hero + Themes + Pricing)"]
+    ROOT --> LOGIN["LoginPage<br/>(Supabase Auth)"]
+    ROOT --> DASH["Dashboard<br/>(Party List)"]
+    ROOT --> WIZARD["PlanWizard<br/>(Multi-Step Form)"]
+    ROOT --> PLAN["PlanView<br/>(Generated Plan)"]
+    ROOT --> RSVPP["RsvpPage<br/>(Public Guest Form)"]
+
+    LAND --> TC["ThemeGrid → ThemeCard[]"]
+    LAND --> PC["PricingCard"]
+
+    WIZARD --> S1["Step 1: ThemeSelect"]
+    WIZARD --> S2["Step 2: ChildDetails"]
+    WIZARD --> S3["Step 3: PartyDetails"]
+    WIZARD --> S4["Step 4: Review + Generate"]
+
+    PLAN --> TL["Timeline"]
+    PLAN --> ACT["ActivityList"]
+    PLAN --> FM["FoodMenu"]
+    PLAN --> SL["ShoppingList"]
+    PLAN --> DEC["DecorationChecklist"]
+    PLAN --> RD["RsvpDashboard"]
+
+    RSVPP --> RF["RsvpForm"]
+
+    style WIZARD fill:#9333ea,color:#fff
+    style PLAN fill:#16a34a,color:#fff
+    style RSVPP fill:#ec4899,color:#fff
+    </pre>
+  </div>
+
+  <h2>Tech Stack Summary</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Why</th></tr>
+    <tr><td>Framework</td><td>Next.js 14 (App Router)</td><td>SSG for SEO, client components for wizard, Vercel deploy</td></tr>
+    <tr><td>Database</td><td>Supabase (PostgreSQL)</td><td>Free tier, auth, RLS, real-time for RSVP updates</td></tr>
+    <tr><td>AI</td><td>OpenAI GPT-4o-mini</td><td>Fast, cheap (~$0.02/plan), structured JSON output</td></tr>
+    <tr><td>Styling</td><td>Tailwind + shadcn/ui</td><td>Polished components, print-friendly with @media print</td></tr>
+    <tr><td>Payments</td><td>Stripe Checkout</td><td>Per-party $4.99, no subscription complexity</td></tr>
+    <tr><td>Email</td><td>Resend</td><td>RSVP notifications, free tier</td></tr>
+    <tr><td>Rate Limiting</td><td>Upstash Redis</td><td>Serverless-friendly, RSVP spam protection</td></tr>
+    <tr><td>Hosting</td><td>Vercel</td><td>Free tier, edge caching, instant rollback</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Design Philosophy:</strong> Planning + RSVP in one tool is the wedge. The plan generator is table stakes
+    (PartyGeniusAI proved it). Our differentiator: the RSVP tracker integrated into the party plan, themed templates
+    with genuinely delightful output, and a print-friendly format parents actually use day-of.
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#ec4899',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#ec4899',
+        lineColor: '#666',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#1a1b26',
+        fontSize: '14px'
+      }
+    });
+  </script>
+</body>
+</html>
