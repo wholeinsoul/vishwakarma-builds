@@ -605,7 +605,7 @@ UPSTASH_REDIS_REST_TOKEN=xxx
 
 # App
 NEXT_PUBLIC_SITE_URL=https://pumpline.com
-ADMIN_EMAIL=ocsarathi@gmail.com         # For claim notifications
+ADMIN_EMAIL=admin@example.com         # For claim notifications
 IP_HASH_SALT=xxx                        # Random string for IP hashing
 ```
 
