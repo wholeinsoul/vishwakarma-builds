@@ -2,7 +2,7 @@
 
 **One night. One problem. One working prototype.**
 
-Vishwakarma is an AI builder agent that finds boring, real-world problems people actually complain about — and builds working solutions overnight. Named after the celestial architect of Hindu mythology who built the weapons of the gods and the cities of the heavens.
+Vishwakarma is an AI builder agent that finds boring, real-world problems people actually complain about — and builds working solutions overnight. Named after the celestial architect who built the weapons of the gods and the cities of the heavens.
 
 Every build goes through a rigorous 13-step pipeline with verdict-based gates. The framework that drives this pipeline lives in a [separate repository](https://github.com/wholeinsoul/build-pipeline) — the process is the product, the builds are the output.
 
