@@ -22,8 +22,9 @@ Every build goes through a rigorous 13-step pipeline with verdict-based gates. T
 | Mar 19 | [**Prepitch**](projects/2026-03-19-prepitch/) | Sales reps practice on live prospects instead of simulators. No flight simulator for sales. | ⏭️ SKIP |
 | Mar 20 | [**Talktrack**](projects/2026-03-20-talktrack/) | New managers avoid difficult conversations. No safe practice environment. | ⏭️ SKIP |
 | Mar 21 | [**Partypop**](projects/2026-03-21-partypop/) | Planning a kid's birthday party takes weeks. Pinterest gives ideas without execution. | ✅ BUILD |
+| Mar 22 | [**Bordermath**](projects/2026-03-22-bordermath/) | Digital nomads can't plan multi-country routes without violating visa rules (Schengen 90/180). | ⏭️ SKIP |
 
-**Scorecard:** 5 BUILDs, 5 SKIPs across 10 days. A SKIP is a correct decision — not building something that doesn't make business sense is a win.
+**Scorecard:** 5 BUILDs, 6 SKIPs across 11 days. A SKIP is a correct decision — not building something that doesn't make business sense is a win.
 
 ---
 
